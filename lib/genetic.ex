@@ -14,13 +14,20 @@ defmodule Genetic do
 
   """
 
+  alias Types.Chromosome
+
   def initialize(genotype) do
     for _ <- 1..100, do: genotype.()
   end
 
   def evaluate(population, fitness_function) do
     population 
-    |> Enum.sort_by(fitness_function, &>=/2)  
+    |> Enum.map( fn chromosome -> 
+      fitness = fitness_function(chromosome)    
+      age = chromosome.age + 1
+      %Chromosome{chromosome | fitness: fitness, age: age}
+    end)  
+    |> Enum.sort_by( &1.fitness, &>=/2)  
   end
 
   def crossover(population) do
@@ -70,30 +77,28 @@ defmodule Genetic do
     )
   end
 
-  def evolve(population, fitness_function,  max_fitness) do
-    population = evaluate(population, fitness_function)
+  def evolve(population, problem,  max_fitness) do
+    population = evaluate(population, &problem.fitness_function/1)
     best = hd(population)
-    IO.write(to_string(fitness_function.(best)) <> "\n")
-    if fitness_function.(best) >= max_fitness do
+    IO.write(to_string(problem.fitness_function.(best)) <> "\n")
+    if problem.fitness_function.(best) >= max_fitness do
       IO.write("best:")
       best
     else
       population
-      |> evaluate(fitness_function)
-      # |> hd
       |> selection()
-      |> crossover2()
-      |> mutation()
-      |> evolve(fitness_function, max_fitness)
+      #  |> crossover2()
+      #  |> mutation()
+      #  |> evolve(problem , max_fitness)
     end
   end
 
-  def run(genotype, fitness_function, max_fitness) do
-    population = initialize(genotype)
+  def run(problem, max_fitness) do
+    population = initialize(&problem.genotype/0)
     IO.write(Enum.count(population))
     IO.write("\nInitial:\n")
     IO.inspect(population)
     population
-    |> evolve(fitness_function, max_fitness) 
+    |> evolve(&problem.fitness_function/1, max_fitness) 
   end
 end
